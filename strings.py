@@ -1,0 +1,321 @@
+"""Generates res/values*/strings.xml for all app languages (one table, so no translation goes missing).
+Run: python strings.py   (build.sh runs it too)
+"""
+from pathlib import Path
+
+LANGS = {
+    # folder suffix(es): strings
+    ("",): dict(
+        language="Language",
+        lang_auto="Automatic (system)",
+        warning_title="⚠ Copyright warning",
+        warning="The Bedrock files this app exports (bedrock_data.zip and the bedrock_data folder) are copyrighted by Mojang Studios / Microsoft. They are copied from YOUR OWN Minecraft Bedrock and are only for YOUR OWN devices.\n\nDo NOT upload, share, re-upload, sell or put these files in a modpack. Anyone who wants to use the mod must export the files from their own Minecraft Bedrock with this app.\n\nThis app and the Bedrock UI mod are not official Minecraft products and are not approved by or associated with Mojang or Microsoft.",
+        agree="I understand",
+        intro="Copies the UI files the Bedrock UI mod needs from your installed Minecraft Bedrock, and installs the mod file you import into your Java launcher. No root needed and nothing is downloaded.",
+        src_title="Source of Bedrock files",
+        src_installed="Minecraft Bedrock %1$s found (%2$d APK files)",
+        src_file="APK file: %1$s",
+        src_none="Minecraft Bedrock is not installed. Pick an .apk / .apks / .xapk file, or install only the mod.",
+        pick="Use an APK / APKS / XAPK file…",
+        use_installed="Use installed Minecraft Bedrock",
+        what_title="What to install",
+        opt_mod="Bedrock UI mod",
+        import_mod="Import mod file (.jar)…",
+        mod_none="No mod imported yet. Download the Bedrock UI mod from its official page (with its credits and license), then import the .jar here.",
+        mod_info="%1$s %2$s\nBy: %3$s\nLicense: %4$s\nFor Minecraft Java: %5$s",
+        mod_wrong="This file is not the Bedrock UI mod (%1$s).",
+        opt_data="Bedrock files (bedrock_data.zip)",
+        install="Install to game folder…",
+        install_hint="Choose the game folder of your Java launcher: the folder that contains \"mods\" (for example .minecraft in Zalith). Older Bedrock UI jars in mods are replaced.",
+        save_zip="Save only bedrock_data.zip…",
+        working="Working… %1$d files, %2$.1f MB",
+        done="Done!",
+        done_mod="Mod installed: mods/%1$s",
+        done_data="Bedrock files: %1$d files, %2$.1f MB",
+        next_steps="Start Minecraft Java with Fabric Loader and Fabric API installed. The mod unpacks bedrock_data.zip on first start.",
+        next_zip="Put bedrock_data.zip in the game folder (next to \"mods\") or leave it in Download.",
+        picked_mods="You picked the \"mods\" folder. Pick the folder that contains it (the game folder).",
+        nothing_selected="Select the mod and/or the Bedrock files first.",
+        nothing="No Bedrock UI files were found in this APK. Copy the log below and send it to the mod author.",
+        no_ui="Warning: no UI definitions were found, so the mod may not work. Copy the log and send it to the mod author.",
+        failed="Failed: %1$s",
+        copy_log="Copy log",
+        copied="Log copied",
+    ),
+    ("in",): dict(
+        language="Bahasa",
+        lang_auto="Otomatis (sistem)",
+        warning_title="⚠ Peringatan hak cipta",
+        warning="File Bedrock yang diekspor aplikasi ini (bedrock_data.zip dan folder bedrock_data) adalah hak cipta Mojang Studios / Microsoft. File ini disalin dari Minecraft Bedrock MILIKMU SENDIRI dan hanya untuk perangkatmu sendiri.\n\nJANGAN mengunggah, membagikan, mengunggah ulang, menjual, atau memasukkan file ini ke modpack. Siapa pun yang ingin memakai mod ini harus mengekspor sendiri dari Minecraft Bedrock miliknya dengan aplikasi ini.\n\nAplikasi ini dan mod Bedrock UI bukan produk resmi Minecraft, dan tidak disetujui oleh atau terkait dengan Mojang maupun Microsoft.",
+        agree="Saya mengerti",
+        intro="Menyalin file UI yang dibutuhkan mod Bedrock UI dari Minecraft Bedrock yang terinstall, dan memasang file mod yang kamu impor ke launcher Java-mu. Tanpa root dan tanpa download apa pun.",
+        src_title="Sumber file Bedrock",
+        src_installed="Minecraft Bedrock %1$s ditemukan (%2$d file APK)",
+        src_file="File APK: %1$s",
+        src_none="Minecraft Bedrock tidak terinstall. Pilih file .apk / .apks / .xapk, atau pasang mod-nya saja.",
+        pick="Pakai file APK / APKS / XAPK…",
+        use_installed="Pakai Minecraft Bedrock yang terinstall",
+        what_title="Yang dipasang",
+        opt_mod="Mod Bedrock UI",
+        import_mod="Impor file mod (.jar)…",
+        mod_none="Belum ada mod yang diimpor. Unduh mod Bedrock UI dari halaman resminya (lengkap dengan kredit dan lisensinya), lalu impor file .jar-nya di sini.",
+        mod_info="%1$s %2$s\nOleh: %3$s\nLisensi: %4$s\nUntuk Minecraft Java: %5$s",
+        mod_wrong="File ini bukan mod Bedrock UI (%1$s).",
+        opt_data="File Bedrock (bedrock_data.zip)",
+        install="Pasang ke folder game…",
+        install_hint="Pilih folder game launcher Java-mu, yaitu folder yang berisi \"mods\" (misalnya .minecraft di Zalith). Jar Bedrock UI versi lama di mods akan diganti.",
+        save_zip="Simpan bedrock_data.zip saja…",
+        working="Memproses… %1$d file, %2$.1f MB",
+        done="Selesai!",
+        done_mod="Mod terpasang: mods/%1$s",
+        done_data="File Bedrock: %1$d file, %2$.1f MB",
+        next_steps="Jalankan Minecraft Java dengan Fabric Loader dan Fabric API terpasang. Mod akan mengekstrak bedrock_data.zip saat pertama dijalankan.",
+        next_zip="Taruh bedrock_data.zip di folder game (di samping \"mods\") atau biarkan di Download.",
+        picked_mods="Kamu memilih folder \"mods\". Pilih folder di atasnya (folder game).",
+        nothing_selected="Pilih mod dan/atau file Bedrock dulu.",
+        nothing="Tidak ada file UI Bedrock di APK ini. Salin log di bawah dan kirim ke pembuat mod.",
+        no_ui="Peringatan: definisi UI tidak ditemukan, jadi mod mungkin tidak jalan. Salin log dan kirim ke pembuat mod.",
+        failed="Gagal: %1$s",
+        copy_log="Salin log",
+        copied="Log disalin",
+    ),
+    ("zh",): dict(
+        language="语言",
+        lang_auto="自动（跟随系统）",
+        warning_title="⚠ 版权警告",
+        warning="本应用导出的 Bedrock 文件（bedrock_data.zip 和 bedrock_data 文件夹）的版权归 Mojang Studios / Microsoft 所有。这些文件复制自你自己的 Minecraft 基岩版，仅供你自己的设备使用。\n\n请勿上传、分享、转载、出售这些文件，也不要将其放入整合包。任何想使用本模组的人都必须用本应用从自己的 Minecraft 基岩版中导出。\n\n本应用和 Bedrock UI 模组均非 Minecraft 官方产品，未经 Mojang 或 Microsoft 认可，也与其无关。",
+        agree="我明白了",
+        intro="从你已安装的 Minecraft 基岩版中复制 Bedrock UI 模组所需的界面文件，并将你导入的模组文件安装到 Java 启动器中。无需 root，也不会下载任何内容。",
+        src_title="Bedrock 文件来源",
+        src_installed="已找到 Minecraft 基岩版 %1$s（%2$d 个 APK 文件）",
+        src_file="APK 文件：%1$s",
+        src_none="未安装 Minecraft 基岩版。请选择 .apk / .apks / .xapk 文件，或只安装模组。",
+        pick="使用 APK / APKS / XAPK 文件…",
+        use_installed="使用已安装的 Minecraft 基岩版",
+        what_title="安装内容",
+        opt_mod="Bedrock UI 模组",
+        import_mod="导入模组文件（.jar）…",
+        mod_none="尚未导入模组。请从 Bedrock UI 模组的官方页面下载（含署名与许可证信息），然后在此导入 .jar 文件。",
+        mod_info="%1$s %2$s\n作者：%3$s\n许可证：%4$s\n适用于 Minecraft Java 版：%5$s",
+        mod_wrong="此文件不是 Bedrock UI 模组（%1$s）。",
+        opt_data="Bedrock 文件（bedrock_data.zip）",
+        install="安装到游戏文件夹…",
+        install_hint="请选择 Java 启动器的游戏文件夹，即包含“mods”的文件夹（例如 Zalith 中的 .minecraft）。mods 中旧版本的 Bedrock UI jar 会被替换。",
+        save_zip="仅保存 bedrock_data.zip…",
+        working="处理中… %1$d 个文件，%2$.1f MB",
+        done="完成！",
+        done_mod="模组已安装：mods/%1$s",
+        done_data="Bedrock 文件：%1$d 个文件，%2$.1f MB",
+        next_steps="请在安装了 Fabric Loader 和 Fabric API 的情况下启动 Minecraft Java 版。模组会在首次启动时解压 bedrock_data.zip。",
+        next_zip="请将 bedrock_data.zip 放到游戏文件夹（与“mods”同级），或留在“下载”文件夹中。",
+        picked_mods="你选择的是“mods”文件夹。请选择它的上一级文件夹（游戏文件夹）。",
+        nothing_selected="请先选择模组和/或 Bedrock 文件。",
+        nothing="此 APK 中没有找到 Bedrock 界面文件。请复制下方日志并发送给模组作者。",
+        no_ui="警告：未找到界面定义，模组可能无法运行。请复制日志并发送给模组作者。",
+        failed="失败：%1$s",
+        copy_log="复制日志",
+        copied="日志已复制",
+    ),
+    ("vi",): dict(
+        language="Ngôn ngữ",
+        lang_auto="Tự động (theo hệ thống)",
+        warning_title="⚠ Cảnh báo bản quyền",
+        warning="Các tệp Bedrock mà ứng dụng này xuất ra (bedrock_data.zip và thư mục bedrock_data) thuộc bản quyền của Mojang Studios / Microsoft. Chúng được sao chép từ Minecraft Bedrock CỦA CHÍNH BẠN và chỉ dùng trên thiết bị của chính bạn.\n\nKHÔNG được tải lên, chia sẻ, đăng lại, bán hoặc đưa các tệp này vào modpack. Ai muốn dùng mod này phải tự xuất tệp từ Minecraft Bedrock của chính họ bằng ứng dụng này.\n\nỨng dụng này và mod Bedrock UI không phải là sản phẩm chính thức của Minecraft, không được Mojang hay Microsoft phê duyệt và không liên kết với họ.",
+        agree="Tôi đã hiểu",
+        intro="Sao chép các tệp giao diện mà mod Bedrock UI cần từ Minecraft Bedrock đã cài, và cài tệp mod bạn nhập vào launcher Java. Không cần root và không tải xuống gì cả.",
+        src_title="Nguồn tệp Bedrock",
+        src_installed="Đã tìm thấy Minecraft Bedrock %1$s (%2$d tệp APK)",
+        src_file="Tệp APK: %1$s",
+        src_none="Chưa cài Minecraft Bedrock. Hãy chọn tệp .apk / .apks / .xapk, hoặc chỉ cài mod.",
+        pick="Dùng tệp APK / APKS / XAPK…",
+        use_installed="Dùng Minecraft Bedrock đã cài",
+        what_title="Nội dung cài đặt",
+        opt_mod="Mod Bedrock UI",
+        import_mod="Nhập tệp mod (.jar)…",
+        mod_none="Chưa nhập mod nào. Hãy tải mod Bedrock UI từ trang chính thức của nó (kèm thông tin ghi công và giấy phép), rồi nhập tệp .jar tại đây.",
+        mod_info="%1$s %2$s\nTác giả: %3$s\nGiấy phép: %4$s\nDành cho Minecraft Java: %5$s",
+        mod_wrong="Tệp này không phải mod Bedrock UI (%1$s).",
+        opt_data="Tệp Bedrock (bedrock_data.zip)",
+        install="Cài vào thư mục game…",
+        install_hint="Chọn thư mục game của launcher Java, tức thư mục chứa \"mods\" (ví dụ .minecraft trong Zalith). Các tệp jar Bedrock UI cũ trong mods sẽ được thay thế.",
+        save_zip="Chỉ lưu bedrock_data.zip…",
+        working="Đang xử lý… %1$d tệp, %2$.1f MB",
+        done="Xong!",
+        done_mod="Đã cài mod: mods/%1$s",
+        done_data="Tệp Bedrock: %1$d tệp, %2$.1f MB",
+        next_steps="Khởi động Minecraft Java đã cài Fabric Loader và Fabric API. Mod sẽ giải nén bedrock_data.zip ở lần chạy đầu tiên.",
+        next_zip="Đặt bedrock_data.zip vào thư mục game (cạnh \"mods\") hoặc để trong thư mục Download.",
+        picked_mods="Bạn đã chọn thư mục \"mods\". Hãy chọn thư mục chứa nó (thư mục game).",
+        nothing_selected="Hãy chọn mod và/hoặc tệp Bedrock trước.",
+        nothing="Không tìm thấy tệp giao diện Bedrock trong APK này. Hãy sao chép nhật ký bên dưới và gửi cho tác giả mod.",
+        no_ui="Cảnh báo: không tìm thấy định nghĩa giao diện nên mod có thể không chạy. Hãy sao chép nhật ký và gửi cho tác giả mod.",
+        failed="Thất bại: %1$s",
+        copy_log="Sao chép nhật ký",
+        copied="Đã sao chép nhật ký",
+    ),
+    # Android has used both codes for Filipino over the years
+    ("tl", "b+fil"): dict(
+        language="Wika",
+        lang_auto="Awtomatiko (sistema)",
+        warning_title="⚠ Babala sa copyright",
+        warning="Ang mga Bedrock file na ine-export ng app na ito (bedrock_data.zip at ang folder na bedrock_data) ay may copyright ng Mojang Studios / Microsoft. Kinopya ang mga ito mula sa SARILI MONG Minecraft Bedrock at para lamang sa SARILI MONG mga device.\n\nHUWAG i-upload, ibahagi, i-re-upload, ibenta o isama ang mga file na ito sa modpack. Ang sinumang gustong gumamit ng mod ay dapat mag-export mula sa sarili nilang Minecraft Bedrock gamit ang app na ito.\n\nAng app na ito at ang Bedrock UI mod ay hindi opisyal na produkto ng Minecraft at hindi inaprubahan ng o kaugnay sa Mojang o Microsoft.",
+        agree="Naiintindihan ko",
+        intro="Kinokopya ang mga UI file na kailangan ng Bedrock UI mod mula sa naka-install mong Minecraft Bedrock, at ini-install sa iyong Java launcher ang mod file na ini-import mo. Hindi kailangan ng root at walang dina-download.",
+        src_title="Pinagmulan ng mga Bedrock file",
+        src_installed="Nakita ang Minecraft Bedrock %1$s (%2$d APK file)",
+        src_file="APK file: %1$s",
+        src_none="Hindi naka-install ang Minecraft Bedrock. Pumili ng .apk / .apks / .xapk file, o i-install lang ang mod.",
+        pick="Gumamit ng APK / APKS / XAPK file…",
+        use_installed="Gamitin ang naka-install na Minecraft Bedrock",
+        what_title="Ano ang ii-install",
+        opt_mod="Bedrock UI mod",
+        import_mod="Mag-import ng mod file (.jar)…",
+        mod_none="Wala pang na-import na mod. I-download ang Bedrock UI mod mula sa opisyal nitong page (kasama ang credits at lisensya nito), saka i-import dito ang .jar.",
+        mod_info="%1$s %2$s\nGumawa: %3$s\nLisensya: %4$s\nPara sa Minecraft Java: %5$s",
+        mod_wrong="Hindi ito ang Bedrock UI mod (%1$s).",
+        opt_data="Mga Bedrock file (bedrock_data.zip)",
+        install="I-install sa game folder…",
+        install_hint="Piliin ang game folder ng iyong Java launcher: ang folder na may \"mods\" (halimbawa .minecraft sa Zalith). Papalitan ang mga lumang Bedrock UI jar sa mods.",
+        save_zip="I-save lang ang bedrock_data.zip…",
+        working="Pinoproseso… %1$d file, %2$.1f MB",
+        done="Tapos na!",
+        done_mod="Na-install ang mod: mods/%1$s",
+        done_data="Mga Bedrock file: %1$d file, %2$.1f MB",
+        next_steps="Simulan ang Minecraft Java na may naka-install na Fabric Loader at Fabric API. Ia-unpack ng mod ang bedrock_data.zip sa unang pagbukas.",
+        next_zip="Ilagay ang bedrock_data.zip sa game folder (katabi ng \"mods\") o iwan ito sa Download.",
+        picked_mods="Ang pinili mo ay ang folder na \"mods\". Piliin ang folder na naglalaman nito (ang game folder).",
+        nothing_selected="Piliin muna ang mod at/o ang mga Bedrock file.",
+        nothing="Walang nakitang Bedrock UI file sa APK na ito. Kopyahin ang log sa ibaba at ipadala sa gumawa ng mod.",
+        no_ui="Babala: walang nakitang UI definition kaya maaaring hindi gumana ang mod. Kopyahin ang log at ipadala sa gumawa ng mod.",
+        failed="Nabigo: %1$s",
+        copy_log="Kopyahin ang log",
+        copied="Nakopya ang log",
+    ),
+    ("ja",): dict(
+        language="言語",
+        lang_auto="自動（システム設定）",
+        warning_title="⚠ 著作権に関する警告",
+        warning="このアプリがエクスポートする Bedrock ファイル（bedrock_data.zip と bedrock_data フォルダー）の著作権は Mojang Studios / Microsoft に帰属します。これらはあなた自身の Minecraft 統合版からコピーされたもので、あなた自身のデバイスでのみ使用できます。\n\nこれらのファイルをアップロード、共有、再配布、販売したり、Modpack に含めたりしないでください。この Mod を使いたい人は、各自がこのアプリで自分の Minecraft 統合版からエクスポートする必要があります。\n\nこのアプリと Bedrock UI Mod は Minecraft の公式製品ではなく、Mojang および Microsoft の承認を受けたものでも、関係するものでもありません。",
+        agree="理解しました",
+        intro="インストール済みの Minecraft 統合版から Bedrock UI Mod に必要な UI ファイルをコピーし、インポートした Mod ファイルを Java ランチャーにインストールします。root 不要で、何もダウンロードしません。",
+        src_title="Bedrock ファイルの取得元",
+        src_installed="Minecraft 統合版 %1$s が見つかりました（APK ファイル %2$d 個）",
+        src_file="APK ファイル：%1$s",
+        src_none="Minecraft 統合版がインストールされていません。.apk / .apks / .xapk ファイルを選ぶか、Mod だけをインストールしてください。",
+        pick="APK / APKS / XAPK ファイルを使う…",
+        use_installed="インストール済みの Minecraft 統合版を使う",
+        what_title="インストールする内容",
+        opt_mod="Bedrock UI Mod",
+        import_mod="Mod ファイル（.jar）をインポート…",
+        mod_none="Mod がまだインポートされていません。Bedrock UI Mod を公式ページ（クレジットとライセンス付き）からダウンロードし、ここで .jar をインポートしてください。",
+        mod_info="%1$s %2$s\n作者：%3$s\nライセンス：%4$s\n対応 Minecraft Java 版：%5$s",
+        mod_wrong="このファイルは Bedrock UI Mod ではありません（%1$s）。",
+        opt_data="Bedrock ファイル（bedrock_data.zip）",
+        install="ゲームフォルダーにインストール…",
+        install_hint="Java ランチャーのゲームフォルダー（「mods」が入っているフォルダー。例：Zalith の .minecraft）を選んでください。mods 内の古い Bedrock UI の jar は置き換えられます。",
+        save_zip="bedrock_data.zip だけを保存…",
+        working="処理中… %1$d ファイル、%2$.1f MB",
+        done="完了！",
+        done_mod="Mod をインストールしました：mods/%1$s",
+        done_data="Bedrock ファイル：%1$d ファイル、%2$.1f MB",
+        next_steps="Fabric Loader と Fabric API を入れた Minecraft Java 版を起動してください。初回起動時に Mod が bedrock_data.zip を展開します。",
+        next_zip="bedrock_data.zip をゲームフォルダー（「mods」と同じ場所）に置くか、Download フォルダーに置いたままにしてください。",
+        picked_mods="「mods」フォルダーが選ばれています。その一つ上のフォルダー（ゲームフォルダー）を選んでください。",
+        nothing_selected="先に Mod と Bedrock ファイルのどちらか（または両方）を選んでください。",
+        nothing="この APK に Bedrock UI ファイルが見つかりませんでした。下のログをコピーして Mod 作者に送ってください。",
+        no_ui="警告：UI 定義が見つからないため、Mod が動かない可能性があります。ログをコピーして Mod 作者に送ってください。",
+        failed="失敗しました：%1$s",
+        copy_log="ログをコピー",
+        copied="ログをコピーしました",
+    ),
+}
+
+# Not translated: the app name, and the language list (each language in its own name).
+COMMON = {"app_name": "Bedrock UI Installer"}
+
+
+def esc(s: str) -> str:
+    s = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    s = s.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace("\n", "\\n")
+    return s
+
+
+
+# 1.3.0: the app needs the official Minecraft Bedrock AND the imported mod file; no "use an APK file" any more.
+REMOVE = ["pick", "use_installed", "opt_mod", "opt_data", "nothing_selected", "src_file"]
+EXTRA = {
+    "": dict(
+        req_title="Requirements",
+        req_bedrock="Minecraft Bedrock from an official store",
+        req_mod="Bedrock UI mod file (.jar)",
+        src_unofficial="Minecraft Bedrock %1$s was not installed from an official store (Google Play, Amazon, Samsung, Huawei, Xiaomi). Install the official game to continue.",
+        src_none="Minecraft Bedrock is not installed. Install it from an official store first.",
+        need_both="Install Minecraft Bedrock and import the mod file first.",
+    ),
+    "in": dict(
+        req_title="Persyaratan",
+        req_bedrock="Minecraft Bedrock dari toko resmi",
+        req_mod="File mod Bedrock UI (.jar)",
+        src_unofficial="Minecraft Bedrock %1$s tidak dipasang dari toko resmi (Google Play, Amazon, Samsung, Huawei, Xiaomi). Pasang game resminya untuk melanjutkan.",
+        src_none="Minecraft Bedrock belum terpasang. Pasang dulu dari toko resmi.",
+        need_both="Pasang Minecraft Bedrock dan impor file mod-nya dulu.",
+    ),
+    "zh": dict(
+        req_title="使用条件",
+        req_bedrock="从官方商店安装的 Minecraft 基岩版",
+        req_mod="Bedrock UI 模组文件（.jar）",
+        src_unofficial="Minecraft 基岩版 %1$s 不是从官方商店（Google Play、Amazon、三星、华为、小米）安装的。请安装正版游戏后继续。",
+        src_none="未安装 Minecraft 基岩版。请先从官方商店安装。",
+        need_both="请先安装 Minecraft 基岩版并导入模组文件。",
+    ),
+    "vi": dict(
+        req_title="Yêu cầu",
+        req_bedrock="Minecraft Bedrock từ cửa hàng chính thức",
+        req_mod="Tệp mod Bedrock UI (.jar)",
+        src_unofficial="Minecraft Bedrock %1$s không được cài từ cửa hàng chính thức (Google Play, Amazon, Samsung, Huawei, Xiaomi). Hãy cài bản chính thức để tiếp tục.",
+        src_none="Chưa cài Minecraft Bedrock. Hãy cài từ cửa hàng chính thức trước.",
+        need_both="Hãy cài Minecraft Bedrock và nhập tệp mod trước.",
+    ),
+    "tl": dict(
+        req_title="Mga kailangan",
+        req_bedrock="Minecraft Bedrock mula sa opisyal na store",
+        req_mod="Bedrock UI mod file (.jar)",
+        src_unofficial="Hindi na-install mula sa opisyal na store ang Minecraft Bedrock %1$s (Google Play, Amazon, Samsung, Huawei, Xiaomi). I-install ang opisyal na laro para magpatuloy.",
+        src_none="Hindi naka-install ang Minecraft Bedrock. I-install muna ito mula sa opisyal na store.",
+        need_both="I-install muna ang Minecraft Bedrock at i-import ang mod file.",
+    ),
+    "ja": dict(
+        req_title="必要なもの",
+        req_bedrock="公式ストアからインストールした Minecraft 統合版",
+        req_mod="Bedrock UI Mod ファイル（.jar）",
+        src_unofficial="Minecraft 統合版 %1$s は公式ストア（Google Play、Amazon、Samsung、Huawei、Xiaomi）からインストールされていません。続けるには正規版をインストールしてください。",
+        src_none="Minecraft 統合版がインストールされていません。まず公式ストアからインストールしてください。",
+        need_both="先に Minecraft 統合版をインストールし、Mod ファイルをインポートしてください。",
+    ),
+}
+for folders, table in LANGS.items():
+    for k in REMOVE:
+        table.pop(k, None)
+    table.update(EXTRA[folders[0]])
+
+def main():
+    res = Path(__file__).parent / "res"
+    keys = set(LANGS[("",)])
+    for folders, table in LANGS.items():
+        missing = keys - set(table)
+        extra = set(table) - keys
+        assert not missing and not extra, (folders, missing, extra)
+        body = dict(COMMON) if folders == ("",) else {}
+        body.update(table)
+        xml = ['<?xml version="1.0" encoding="utf-8"?>', "<!-- generated by strings.py; edit that file -->", "<resources>"]
+        xml += [f'    <string name="{k}">{esc(v)}</string>' for k, v in body.items()]
+        xml.append("</resources>\n")
+        for f in folders:
+            d = res / ("values" + ("-" + f if f else ""))
+            d.mkdir(parents=True, exist_ok=True)
+            (d / "strings.xml").write_text("\n".join(xml), encoding="utf-8")
+    print(f"{len(LANGS)} languages, {len(keys)} strings each")
+
+
+if __name__ == "__main__":
+    main()

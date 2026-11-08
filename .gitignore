@@ -1,0 +1,20 @@
+# ---- NEVER upload Mojang/Bedrock files ----
+bedrock_data.zip
+bedrock_data/
+*.brarchive
+COPYRIGHT_README.txt
+
+# ---- signing key (keep it safe, offline) ----
+*.jks
+*.keystore
+*.idsig
+
+# ---- builds ----
+build/
+*.apk
+
+# ---- IDE / OS ----
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
